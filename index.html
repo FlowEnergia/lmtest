@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +20,7 @@
         #chat-container {
             width: 100%;
             max-width: 600px;
-            background-color: white;
+            background-color: #fff;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             display: flex;
@@ -67,6 +67,7 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            outline: none;
         }
 
         #send-button {
@@ -77,6 +78,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
 
         #send-button:disabled {
@@ -91,7 +93,7 @@
             width: 20px;
             height: 20px;
             animation: spin 1s linear infinite;
-            align-self: flex-start;
+            align-self: center;
             margin: 10px 0;
         }
 
@@ -113,7 +115,7 @@
 
 <script>
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
-    const API_KEY = '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';
+    const API_KEY = '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'; // Replace with your actual API key
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
@@ -155,7 +157,7 @@
 
     function buildPrompt() {
         const initialPrompt = '<|user|>\nVocê é um assistente virtual. Responda de forma clara, direta e amigável.<|end|>\n';
-        const promptHistory = conversationHistory.slice(-6); // Mantém o histórico recente para contexto
+        const promptHistory = conversationHistory.slice(-6);
         let prompt = initialPrompt;
         for (const msg of promptHistory) {
             const role = msg.role === 'user' ? '<|user|>' : '<|assistant|>';
@@ -166,16 +168,21 @@
     }
 
     function cleanResponse(response) {
-        // Remove padrões de metadados e textos desnecessários
         response = response
-            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1')  // Remove markdown bold/italic
+            // Remove markdown formatting
+            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1')
+            // Remove control characters and metadata
             .replace(/<\|.*?\|>/g, '')
+            // Remove any trailing metadata or notes
+            .replace(/\(Note:[^\)]*\)/gi, '')
+            // Remove any "Instruction", "Questions", "What if" sections
             .replace(/Instruction.*?:.*$/gmi, '')
             .replace(/Questions.*?:.*$/gmi, '')
-            .replace(/What if.*?\?/gi, '')  // Remove hypothetical questions
-            .replace(/\n+/g, ' ')  // Convert multiple newlines to a single space
+            .replace(/What if.*?\?/gi, '')
+            // Convert multiple newlines or trailing spaces
+            .replace(/\n+/g, ' ')
             .trim();
-        // Further refine to remove trailing partial sentences if they're confusing
+        // Further clean up to ensure no partial trailing sentences
         return response.replace(/[^.!?]*$/, '').trim();
     }
 
@@ -193,7 +200,7 @@
         const requestData = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 150, // Controla o tamanho da resposta
+                max_new_tokens: 150,
                 temperature: 0.7,
                 top_p: 0.9,
                 return_full_text: false
