@@ -50,4 +50,3 @@ Sugestões e melhorias são bem-vindas! Por favor, abra uma [issue](https://gith
 ## Licença
 
 Este projeto está licenciado sob a licença MIT.
-```
