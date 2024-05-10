@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>a-good-chatbot</title>
+    <title>Chatbot Avançado</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -74,14 +74,14 @@
         #input-container {
             display: flex;
             padding: 10px;
-            border-top: 1px sólido #ccc;
+            border-top: 1px solid #ccc;
             background-color: #f9f9f9;
         }
 
         #user-input {
             flex-grow: 1;
             padding: 10px;
-            border: 1px sólido #ccc;
+            border: 1px solid #ccc;
             border-radius: 5px;
             outline: none;
         }
@@ -107,6 +107,15 @@
             to { opacity: 1; }
         }
 
+        #clear-chat {
+            margin: 10px;
+            padding: 10px 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -118,14 +127,16 @@
         <button id="send-button">Enviar</button>
     </div>
 </div>
+<button id="clear-chat">Reiniciar Chat</button>
 
 <script>
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
-    const API_KEY = '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'; // Substitua pela sua chave de API.
+    // IMPORTANT: Replace with your actual API key and make sure to keep it secure.
+    const API_KEY = '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';
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
-    const responseCache = new Map();
+    const clearChatButton = document.getElementById('clear-chat');
     let conversationHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
 
     async function query(data) {
@@ -172,7 +183,7 @@
         <|user|>
         Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>
         `;
-        const promptHistory = conversationHistory.slice(-10); // Até 10 interações anteriores
+        const promptHistory = conversationHistory.slice(-10);
         let prompt = initialPrompt;
         for (const msg of promptHistory) {
             const role = msg.role === 'user' ? '<|user|>' : '<|assistant|>';
@@ -184,26 +195,21 @@
 
     function cleanResponse(response) {
         return response
-            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1') // Remove formatação markdown
-            .replace(/<\|.*?\|>/g, '') // Remove caracteres de controle e metadados
-            .replace(/\(Note:[^\)]*\)/gi, '') // Remove notas ou metadados finais
-            .replace(/Instruction.*?:.*$/gmi, '') // Remove seções "Instruction", "Questions", etc.
+            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1')
+            .replace(/<\|.*?\|>/g, '')
+            .replace(/\(Note:[^\)]*\)/gi, '')
+            .replace(/Instruction.*?:.*$/gmi, '')
             .replace(/Questions.*?:.*$/gmi, '')
             .replace(/What if.*?\?/gi, '')
-            .replace(/\n+/g, ' ') // Converte múltiplas quebras de linha
-            .replace(/###[^\n]*/g, '') // Remove títulos e instruções especiais
-            .replace(/[^.!?]*$/, '') // Remove sentenças incompletas
+            .replace(/\n+/g, ' ')
+            .replace(/###[^\n]*/g, '')
+            .replace(/[^.!?]*$/, '')
             .trim();
     }
 
     async function sendMessage() {
         const userMessage = userInput.value.trim();
         if (userMessage === '') return;
-
-        if (responseCache.has(userMessage)) {
-            addMessage(responseCache.get(userMessage), false);
-            return;
-        }
 
         conversationHistory.push({ role: 'user', content: userMessage });
         localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
@@ -216,7 +222,7 @@
         const requestData = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 1500,
+                max_new_tokens: 150, // Reduce the max tokens to ensure faster processing and more focused responses.
                 temperature: 0.7,
                 top_p: 0.9,
                 return_full_text: false
@@ -237,7 +243,6 @@
         localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
         removeElement(typingIndicator);
         addMessage(botMessage, false);
-        responseCache.set(userMessage, botMessage);
         sendButton.disabled = false;
         userInput.focus();
     }
@@ -245,14 +250,15 @@
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
+            const context = this;
             clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), delay);
+            timeout = setTimeout(() => func.apply(context, args), delay);
         };
     }
 
     function loadChatHistory() {
         if (conversationHistory.length > 0) {
-            conversationHistory.forEach((msg) => {
+            conversationHistory.forEach(msg => {
                 addMessage(msg.content, msg.role === 'user');
             });
         }
@@ -265,37 +271,106 @@
     }
 
     sendButton.addEventListener('click', debounce(sendMessage, 300));
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') debounce(sendMessage, 300)();
+    userInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
     });
 
-    function addClearChatButton() {
-        const clearChatButton = document.createElement('button');
-        clearChatButton.id = 'clear-chat';
-        clearChatButton.textContent = 'Reiniciar Chat';
-        clearChatButton.style.margin = '10px';
-        clearChatButton.style.padding = '10px 15px';
-        clearChatButton.style.backgroundColor = '#dc3545';
-        clearChatButton.style.color = 'white';
-        clearChatButton.style.border = 'none';
-        clearChatButton.style.borderRadius = '5px';
-        clearChatButton.style.cursor = 'pointer';
-        clearChatButton.addEventListener('click', clearChatHistory);
+    clearChatButton.addEventListener('click', () => {
+        clearChatHistory();
+    });
 
-        document.body.insertBefore(clearChatButton, document.getElementById('chat-container'));
+    // Função para carregar o histórico de conversa ao inicializar a página
+    loadChatHistory();
+
+    // Função para manter a interface do usuário responsiva e acessível
+    document.addEventListener('DOMContentLoaded', () => {
+        userInput.focus(); // Coloca o foco no input ao carregar a página
+    });
+
+    // Função para atualizar o scroll das mensagens cada vez que uma nova mensagem é adicionada
+    function updateScroll() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function loadChatHistory() {
-        if (conversationHistory.length > 0) {
-            conversationHistory.forEach((msg) => {
-                addMessage(msg.content, msg.role === 'user');
-            });
+    // Carregar o histórico de conversas do localStorage ao iniciar o chat
+    if (conversationHistory.length === 0) {
+        addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
+    } else {
+        loadChatHistory();
+        updateScroll();
+    }
+
+    // Função para lidar com o input do usuário
+    function handleUserInput() {
+        const userMessage = userInput.value.trim();
+        if (userMessage === '') return;
+
+        // Desabilita o botão de enviar para evitar múltiplos cliques
+        sendButton.disabled = true;
+
+        // Adiciona a mensagem do usuário ao chat
+        conversationHistory.push({ role: 'user', content: userMessage });
+        addMessage(userMessage, true);
+
+        // Limpa o input
+        userInput.value = '';
+        updateScroll();
+
+        // Chama o bot para processar e responder
+        const typingIndicator = addTypingIndicator();
+        processBotResponse(userMessage, typingIndicator);
+    }
+
+    // Função para processar a resposta do bot
+    async function processBotResponse(userMessage, typingIndicator) {
+        const prompt = buildPrompt();
+        const requestData = {
+            inputs: prompt,
+            parameters: {
+                max_new_tokens: 150,
+                temperature: 0.7,
+                top_p: 0.9,
+                return_full_text: false
+            }
+        };
+
+        // Consulta a API do modelo para obter a resposta
+        const botResponse = await query(requestData);
+        let botMessage = 'Desculpe, não consegui gerar uma resposta.';
+        if (botResponse?.generated_text) {
+            botMessage = cleanResponse(botResponse.generated_text);
+        } else if (botResponse?.[0]?.generated_text) {
+            botMessage = cleanResponse(botResponse[0].generated_text);
+        } else if (botResponse?.error) {
+            botMessage = `Erro: ${botResponse.error}`;
         }
+
+        // Adiciona a resposta do bot ao chat
+        conversationHistory.push({ role: 'assistant', content: botMessage });
+        localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+        removeElement(typingIndicator);
+        addMessage(botMessage, false);
+        updateScroll();
+
+        // Reabilita o botão de enviar
+        sendButton.disabled = false;
+        userInput.focus();
     }
 
-    addClearChatButton();
+    // Eventos para lidar com a entrada do usuário
+    sendButton.addEventListener('click', debounce(handleUserInput, 300));
+    userInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleUserInput();
+        }
+    });
+
+    // Inicialização
     loadChatHistory();
 </script>
-
 </body>
 </html>
