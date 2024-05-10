@@ -13,7 +13,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             background-color: #f4f4f4;
         }
 
@@ -57,7 +57,6 @@
 
         .typing-indicator {
             display: flex;
-            justify-content: flex-start;
             align-items: center;
             margin: 10px 0;
         }
@@ -73,14 +72,14 @@
         #input-container {
             display: flex;
             padding: 10px;
-            border-top: 1px sólido #ccc;
+            border-top: 1px solid #ccc;
             background-color: #f9f9f9;
         }
 
         #user-input {
             flex-grow: 1;
             padding: 10px;
-            border: 1px sólido #ccc;
+            border: 1px solid #ccc;
             border-radius: 5px;
             outline: none;
         }
@@ -101,9 +100,14 @@
             cursor: not-allowed;
         }
 
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .loader {
-            border: 4px sólido #f3f3f3;
-            border-top: 4px sólido #3498db;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
             border-radius: 50%;
             width: 20px;
             height: 20px;
@@ -112,10 +116,6 @@
             margin: 10px 0;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -130,10 +130,11 @@
 
 <script>
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
-    const API_KEY = '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'; // Replace with your actual API key
+    const API_KEY = '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'; // Substitua pela sua chave de API.
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
+    const responseCache = new Map();
     let conversationHistory = [];
 
     async function query(data) {
@@ -162,14 +163,6 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function addLoader() {
-        const loader = document.createElement('div');
-        loader.className = 'loader';
-        messagesContainer.appendChild(loader);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return loader;
-    }
-
     function addTypingIndicator() {
         const typingIndicator = document.createElement('div');
         typingIndicator.className = 'typing-indicator';
@@ -185,7 +178,7 @@
 
     function buildPrompt() {
         const initialPrompt = '<|user|>\nVocê é um assistente virtual. Responda de forma clara, direta e amigável.<|end|>\n';
-        const promptHistory = conversationHistory.slice(-10);
+        const promptHistory = conversationHistory.slice(-5);
         let prompt = initialPrompt;
         for (const msg of promptHistory) {
             const role = msg.role === 'user' ? '<|user|>' : '<|assistant|>';
@@ -196,27 +189,27 @@
     }
 
     function cleanResponse(response) {
-        response = response
-            // Remove markdown formatting
-            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1')
-            // Remove control characters and metadata
-            .replace(/<\|.*?\|>/g, '')
-            // Remove trailing metadata or notes
-            .replace(/\(Note:[^\)]*\)/gi, '')
-            // Remove "Instruction", "Questions", "What if" sections
-            .replace(/Instruction.*?:.*$/gmi, '')
+        return response
+            .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1') // Remove formatação de markdown
+            .replace(/<\|.*?\|>/g, '') // Remove caracteres de controle e metadados
+            .replace(/\(Note:[^\)]*\)/gi, '') // Remove notas ou metadados finais
+            .replace(/Instruction.*?:.*$/gmi, '') // Remove seções "Instruction", "Questions", etc.
             .replace(/Questions.*?:.*$/gmi, '')
             .replace(/What if.*?\?/gi, '')
-            // Convert multiple newlines or trailing spaces
-            .replace(/\n+/g, ' ')
+            .replace(/\n+/g, ' ') // Converte múltiplas quebras de linha
+            .replace(/###[^\n]*/g, '') // Remove títulos e instruções especiais
+            .replace(/[^.!?]*$/, '') // Remove sentenças incompletas
             .trim();
-        // Further clean up to ensure no partial trailing sentences
-        return response.replace(/[^.!?]*$/, '').trim();
     }
 
     async function sendMessage() {
         const userMessage = userInput.value.trim();
         if (userMessage === '') return;
+
+        if (responseCache.has(userMessage)) {
+            addMessage(responseCache.get(userMessage), false);
+            return;
+        }
 
         conversationHistory.push({ role: 'user', content: userMessage });
         addMessage(userMessage, true);
@@ -228,9 +221,9 @@
         const requestData = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 150,
-                temperature: 0.7,
-                top_p: 0.9,
+                max_new_tokens: 100,
+                temperature: 0.6,
+                top_p: 0.8,
                 return_full_text: false
             }
         };
@@ -248,12 +241,22 @@
         conversationHistory.push({ role: 'assistant', content: botMessage });
         removeElement(typingIndicator);
         addMessage(botMessage, false);
+        responseCache.set(userMessage, botMessage);
         sendButton.disabled = false;
+        userInput.focus();
     }
 
-    sendButton.addEventListener('click', sendMessage);
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    sendButton.addEventListener('click', debounce(sendMessage, 300));
     userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+        if (e.key === 'Enter') debounce(sendMessage, 300)();
     });
 </script>
 
