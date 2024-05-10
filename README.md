@@ -1,14 +1,14 @@
 # Chatbot com Assistente Virtual
 
-Este projeto é um chatbot simples com assistente virtual, desenvolvido em HTML e JavaScript. Ele utiliza a API `Phi-3-mini-4k-instruct` da Hugging Face para fornecer respostas inteligentes e amigáveis.
+Este projeto é um chatbot simples com assistente virtual, desenvolvido em HTML e JavaScript.
+Ele utiliza a API `Phi-3-mini-4k-instruct` da Hugging Face para fornecer respostas inteligentes e amigáveis.
 O design é simples, responsivo e oferece uma experiência de conversa fluida.
 
 ## Recursos
 
 - **Assistente Virtual Inteligente:** Responde perguntas e fornece informações úteis.
 - **Interface Responsiva:** Design simples e responsivo para uma experiência agradável.
-- **Indicador de Digitando:** Mostra quando o assistente está digitando.
-- **Histórico de Conversa:** Armazena até 10 mensagens previamente enviadas para contexto.
+- **Histórico de Conversa:** Armazena mensagens previamente enviadas para contexto.
 
 ## Pré-requisitos
 
