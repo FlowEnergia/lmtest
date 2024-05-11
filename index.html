@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot Avançado</title>
     <style>
-        /* Estilos básicos para o corpo da página */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -19,7 +18,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Estilos para o modo escuro */
         @media (prefers-color-scheme: dark) {
             body {
                 background-color: #2c2c2c;
@@ -38,6 +36,10 @@
                 background-color: #444;
             }
 
+            .typing-indicator > span {
+                background-color: #444;
+            }
+
             #input-container {
                 background-color: #4c4c4c;
             }
@@ -51,7 +53,6 @@
             }
         }
 
-        /* Estilos para o contêiner principal do chat */
         #chat-container {
             width: 100%;
             max-width: 600px;
@@ -64,22 +65,20 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Área de mensagens */
         #messages {
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            margin: 0 10px;
         }
 
-        /* Estilos para as mensagens do usuário e do bot */
         .message {
             margin: 10px 0;
             padding: 10px;
             border-radius: 5px;
-            width: 100%; /* Ocupa toda a largura disponível */
+            max-width: 70%;
             word-wrap: break-word;
             opacity: 0;
             animation: fadeIn 0.3s forwards;
@@ -88,23 +87,37 @@
 
         .user-message {
             background-color: #d1f4ff;
-            align-self: flex-end; /* Alinha a mensagem do usuário à direita */
+            align-self: flex-end;
         }
 
         .bot-message {
             background-color: #e1e1e1;
-            align-self: flex-start; /* Alinha a mensagem do bot à esquerda */
+            align-self: flex-start;
         }
 
-        /* Estilos para o contêiner de entrada de texto */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .typing-indicator > span {
+            margin-left: 10px;
+            background-color: #e1e1e1;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-style: italic;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         #input-container {
             display: flex;
             padding: 10px;
             border-top: 1px sólido #ccc;
             background-color: #f9f9f9;
+            transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Estilo do campo de entrada de texto */
         #user-input {
             flex-grow: 1;
             padding: 10px;
@@ -113,7 +126,6 @@
             outline: none;
         }
 
-        /* Estilo do botão de enviar */
         #send-button {
             padding: 10px 15px;
             margin-left: 10px;
@@ -130,7 +142,6 @@
             cursor: not-allowed;
         }
 
-        /* Estilo do botão de limpar chat */
         #clear-chat {
             margin: 10px;
             padding: 10px 15px;
@@ -142,40 +153,24 @@
             transition: background-color 0.3s;
         }
 
-        #clear-chat:hover {
-            background-color: #c82333;
-        }
-
-        /* Animação de fade-in para as mensagens */
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-<!-- Contêiner principal do chat -->
 <div id="chat-container">
-    <!-- Área de mensagens -->
     <div id="messages" aria-live="polite"></div>
-    <!-- Contêiner de entrada de mensagem -->
     <div id="input-container">
         <input type="text" id="user-input" placeholder="Digite sua mensagem aqui..." aria-label="Mensagem">
         <button id="send-button" disabled>Enviar</button>
     </div>
 </div>
-
-<!-- Botão para limpar o chat -->
 <button id="clear-chat">Reiniciar Chat</button>
 
 <script>
-    /* Configurações da API */
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
     const API_KEY = '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';
     const messagesContainer = document.getElementById('messages');
@@ -184,7 +179,6 @@
     const clearChatButton = document.getElementById('clear-chat');
     let conversationHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
 
-    /* Função para chamar a API */
     async function query(data) {
         try {
             const response = await fetch(API_URL, {
@@ -203,7 +197,6 @@
         }
     }
 
-    /* Função para adicionar uma mensagem ao chat */
     function addMessage(text, isUser) {
         const messageElement = document.createElement('div');
         messageElement.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
@@ -212,10 +205,24 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    /* Função para construir o prompt da conversação */
+    function addTypingIndicator() {
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.innerHTML = `<span>Assistente está digitando...</span>`;
+        messagesContainer.appendChild(typingIndicator);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return typingIndicator;
+    }
+
+    function removeElement(element) {
+        if (element) messagesContainer.removeChild(element);
+    }
+
     function buildPrompt() {
-        const initialPrompt = `<|user|>
-        Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>`;
+        const initialPrompt = `
+        <|user|>
+        Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>
+        `;
         const promptHistory = conversationHistory.slice(-10);
         let prompt = initialPrompt;
         promptHistory.forEach(msg => {
@@ -226,7 +233,6 @@
         return prompt;
     }
 
-    /* Função para limpar a resposta */
     function cleanResponse(response) {
         return response
             .replace(/(?:\*\*|__)(.*?)(?:\*\*|__)/g, '$1')
@@ -237,18 +243,16 @@
             .trim();
     }
 
-    /* Função para lidar com erros na chamada da API */
     function handleApiError(error) {
         addMessage(`Desculpe, ocorreu um erro: ${error}`, false);
     }
 
-    /* Função para processar a resposta do bot */
-    async function processBotResponse() {
+    async function processBotResponse(typingIndicator) {
         const prompt = buildPrompt();
         const requestData = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 150,
+                max_new_tokens: 1900,
                 temperature: 0.65,
                 top_p: 0.85,
                 repetition_penalty: 1.1,
@@ -267,18 +271,21 @@
 
             conversationHistory.push({ role: 'assistant', content: botMessage });
             localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+            removeElement(typingIndicator);
             addMessage(botMessage, false);
+            sendNotification('Resposta do Assistente', botMessage);
         } catch (error) {
             handleApiError(error);
+            removeElement(typingIndicator);
         } finally {
             sendButton.disabled = false;
             userInput.focus();
         }
     }
 
-    /* Função para lidar com a entrada do usuário */
     function handleUserInput() {
-        const userMessage = userInput.value.trim();
+        const userMessage = userInput.value
+.trim();
         if (userMessage === '') return;
 
         conversationHistory.push({ role: 'user', content: userMessage });
@@ -287,10 +294,10 @@
         userInput.value = '';
         sendButton.disabled = true;
 
-        processBotResponse();
+        const typingIndicator = addTypingIndicator();
+        processBotResponse(typingIndicator);
     }
 
-    /* Função para limpar o histórico do chat */
     function clearChatHistory() {
         conversationHistory = [];
         localStorage.removeItem('conversationHistory');
@@ -298,22 +305,41 @@
         addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
     }
 
-    /* Função de debounce para evitar múltiplas chamadas */
+    function sendNotification(title, body) {
+        if (Notification.permission === 'granted') {
+            new Notification(title, { body });
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    new Notification(title, { body });
+                }
+            });
+        }
+    }
+
+    function loadChatHistory() {
+        if (conversationHistory.length > 0) {
+            conversationHistory.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user');
+            });
+        } else {
+            addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
+        }
+    }
+
     function debounce(func, delay) {
         let timeout;
-        return function (...args) {
+        return function(...args) {
             const context = this;
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(context, args), delay);
         };
     }
 
-    /* Função para lidar com alterações na entrada do usuário */
     function handleUserInputChange() {
         sendButton.disabled = userInput.value.trim() === '';
     }
 
-    /* Adicionando eventos aos botões e campos */
     sendButton.addEventListener('click', debounce(handleUserInput, 300));
     userInput.addEventListener('input', handleUserInputChange);
     userInput.addEventListener('keypress', e => {
@@ -325,19 +351,13 @@
 
     clearChatButton.addEventListener('click', clearChatHistory);
 
-    /* Carregar histórico do chat ao iniciar */
-    function loadChatHistory() {
-        if (conversationHistory.length > 0) {
-            conversationHistory.forEach(msg => {
-                addMessage(msg.content, msg.role === 'user');
-            });
-        } else {
-            addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
+    Notification.requestPermission().then(permission => {
+        if (permission !== 'granted' && permission !== 'denied') {
+            Notification.requestPermission();
         }
-    }
+    });
 
     loadChatHistory();
 </script>
-
 </body>
 </html>
