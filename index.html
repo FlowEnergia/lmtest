@@ -189,10 +189,7 @@
     }
 
     function buildPrompt() {
-        const initialPrompt = `
-<|user|>
-Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>
-`;
+        const initialPrompt = `Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.\n`;
         const promptHistory = conversationHistory.slice(-10);
         let prompt = initialPrompt;
         promptHistory.forEach(msg => {
@@ -210,6 +207,11 @@ Você é um assistente virtual amigável, útil e altamente qualificado. Respond
             .replace(/\(Note:[^\)]*\)/gi, '')
             .replace(/\n+/g, ' ')
             .replace(/[^.!?]*$/, '')
+            .replace(/Instrucción \d.*?$/, '') // Remove instruções irrelevantes
+            .replace(/Sample.*?$/, '') // Remove texto residual de exemplos
+            .replace(/Tokenizer.*?$/, '') // Remove instruções do Tokenizer
+            .replace(/Chat Format.*?$/, '') // Remove instruções do Chat Format
+            .replace(/[\[\]]/g, '') // Remove colchetes
             .trim();
     }
 
@@ -275,8 +277,7 @@ Você é um assistente virtual amigável, útil e altamente qualificado. Respond
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
-            const context = this
-;
+            const context = this;
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(context, args), delay);
         };
