@@ -15,6 +15,42 @@
             justify-content: center;
             min-height: 100vh;
             background-color: #f4f4f4;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #2c2c2c;
+                color: #f4f4f4;
+            }
+
+            #chat-container {
+                background-color: #3c3c3c;
+            }
+
+            .message.user-message {
+                background-color: #366b80;
+            }
+
+            .message.bot-message {
+                background-color: #444;
+            }
+
+            .typing-indicator > span {
+                background-color: #444;
+            }
+
+            #input-container {
+                background-color: #4c4c4c;
+            }
+
+            #send-button {
+                background-color: #28a745;
+            }
+
+            #clear-chat {
+                background-color: #c82333;
+            }
         }
 
         #chat-container {
@@ -26,6 +62,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         #messages {
@@ -45,6 +82,7 @@
             word-wrap: break-word;
             opacity: 0;
             animation: fadeIn 0.3s forwards;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .user-message {
@@ -69,6 +107,7 @@
             padding: 5px 10px;
             border-radius: 5px;
             font-style: italic;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         #input-container {
@@ -76,6 +115,7 @@
             padding: 10px;
             border-top: 1px solid #ccc;
             background-color: #f9f9f9;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         #user-input {
@@ -102,11 +142,6 @@
             cursor: not-allowed;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
         #clear-chat {
             margin: 10px;
             padding: 10px 15px;
@@ -115,6 +150,12 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
@@ -131,7 +172,6 @@
 
 <script>
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
-    // IMPORTANT: Replace with your actual API key and make sure to keep it secure.
     const API_KEY = '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';
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
@@ -207,7 +247,48 @@
             .trim();
     }
 
-    async function sendMessage() {
+    function handleApiError(error) {
+        const errorMessage = `Desculpe, ocorreu um erro: ${error}`;
+        addMessage(errorMessage, false);
+    }
+
+    async function processBotResponse(typingIndicator) {
+        const prompt = buildPrompt();
+        const requestData = {
+            inputs: prompt,
+            parameters: {
+                max_new_tokens: 200,
+                temperature: 0.7,
+                top_p: 0.9,
+                repetition_penalty: 1.2,
+                return_full_text: false
+            }
+        };
+
+        try {
+            const botResponse = await query(requestData);
+            let botMessage = 'Desculpe, não consegui gerar uma resposta.';
+            if (botResponse?.generated_text) {
+                botMessage = cleanResponse(botResponse.generated_text);
+            } else if (botResponse?.[0]?.generated_text) {
+                botMessage = cleanResponse(botResponse[0].generated_text);
+            }
+
+            conversationHistory.push({ role: 'assistant', content: botMessage });
+            localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+            removeElement(typingIndicator);
+            addMessage(botMessage, false);
+            sendNotification('Resposta do Assistente', botMessage);
+        } catch (error) {
+            handleApiError(error);
+            removeElement(typingIndicator);
+        } finally {
+            sendButton.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    function handleUserInput() {
         const userMessage = userInput.value.trim();
         if (userMessage === '') return;
 
@@ -216,35 +297,42 @@
         addMessage(userMessage, true);
         userInput.value = '';
         sendButton.disabled = true;
+
         const typingIndicator = addTypingIndicator();
+        processBotResponse(typingIndicator);
+    }
 
-        const prompt = buildPrompt();
-        const requestData = {
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 150, // Reduce the max tokens to ensure faster processing and more focused responses.
-                temperature: 0.7,
-                top_p: 0.9,
-                return_full_text: false
-            }
-        };
+    function clearChatHistory() {
+        conversationHistory = [];
+        localStorage.removeItem('conversationHistory');
+        messagesContainer.innerHTML = '';
+        addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
+    }
 
-        const botResponse = await query(requestData);
-        let botMessage = 'Desculpe, não consegui gerar uma resposta.';
-        if (botResponse?.generated_text) {
-            botMessage = cleanResponse(botResponse.generated_text);
-        } else if (botResponse?.[0]?.generated_text) {
-            botMessage = cleanResponse(botResponse[0].generated_text);
-        } else if (botResponse?.error) {
-            botMessage = `Erro: ${botResponse.error}`;
+    function sendNotification(title, body) {
+        if (Notification.permission === 'granted') {
+            new Notification(title, { body });
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    new Notification(title, { body });
+                }
+            });
         }
+    }
 
-        conversationHistory.push({ role: 'assistant', content: botMessage });
-        localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
-        removeElement(typingIndicator);
-        addMessage(botMessage, false);
-        sendButton.disabled = false;
-        userInput.focus();
+    function updateScroll() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function loadChatHistory() {
+        if (conversationHistory.length > 0) {
+            conversationHistory.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user');
+            });
+        } else {
+            addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
+        }
     }
 
     function debounce(func, delay) {
@@ -256,111 +344,6 @@
         };
     }
 
-    function loadChatHistory() {
-        if (conversationHistory.length > 0) {
-            conversationHistory.forEach(msg => {
-                addMessage(msg.content, msg.role === 'user');
-            });
-        }
-    }
-
-    function clearChatHistory() {
-        conversationHistory = [];
-        localStorage.removeItem('conversationHistory');
-        messagesContainer.innerHTML = '';
-    }
-
-    sendButton.addEventListener('click', debounce(sendMessage, 300));
-    userInput.addEventListener('keypress', e => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    clearChatButton.addEventListener('click', () => {
-        clearChatHistory();
-    });
-
-    // Função para carregar o histórico de conversa ao inicializar a página
-    loadChatHistory();
-
-    // Função para manter a interface do usuário responsiva e acessível
-    document.addEventListener('DOMContentLoaded', () => {
-        userInput.focus(); // Coloca o foco no input ao carregar a página
-    });
-
-    // Função para atualizar o scroll das mensagens cada vez que uma nova mensagem é adicionada
-    function updateScroll() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    // Carregar o histórico de conversas do localStorage ao iniciar o chat
-    if (conversationHistory.length === 0) {
-        addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
-    } else {
-        loadChatHistory();
-        updateScroll();
-    }
-
-    // Função para lidar com o input do usuário
-    function handleUserInput() {
-        const userMessage = userInput.value.trim();
-        if (userMessage === '') return;
-
-        // Desabilita o botão de enviar para evitar múltiplos cliques
-        sendButton.disabled = true;
-
-        // Adiciona a mensagem do usuário ao chat
-        conversationHistory.push({ role: 'user', content: userMessage });
-        addMessage(userMessage, true);
-
-        // Limpa o input
-        userInput.value = '';
-        updateScroll();
-
-        // Chama o bot para processar e responder
-        const typingIndicator = addTypingIndicator();
-        processBotResponse(userMessage, typingIndicator);
-    }
-
-    // Função para processar a resposta do bot
-    async function processBotResponse(userMessage, typingIndicator) {
-        const prompt = buildPrompt();
-        const requestData = {
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 150,
-                temperature: 0.7,
-                top_p: 0.9,
-                return_full_text: false
-            }
-        };
-
-        // Consulta a API do modelo para obter a resposta
-        const botResponse = await query(requestData);
-        let botMessage = 'Desculpe, não consegui gerar uma resposta.';
-        if (botResponse?.generated_text) {
-            botMessage = cleanResponse(botResponse.generated_text);
-        } else if (botResponse?.[0]?.generated_text) {
-            botMessage = cleanResponse(botResponse[0].generated_text);
-        } else if (botResponse?.error) {
-            botMessage = `Erro: ${botResponse.error}`;
-        }
-
-        // Adiciona a resposta do bot ao chat
-        conversationHistory.push({ role: 'assistant', content: botMessage });
-        localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
-        removeElement(typingIndicator);
-        addMessage(botMessage, false);
-        updateScroll();
-
-        // Reabilita o botão de enviar
-        sendButton.disabled = false;
-        userInput.focus();
-    }
-
-    // Eventos para lidar com a entrada do usuário
     sendButton.addEventListener('click', debounce(handleUserInput, 300));
     userInput.addEventListener('keypress', e => {
         if (e.key === 'Enter') {
@@ -369,8 +352,16 @@
         }
     });
 
-    // Inicialização
+    clearChatButton.addEventListener('click', clearChatHistory);
+
+    Notification.requestPermission().then(permission => {
+        if (permission !== 'granted' && permission !== 'denied') {
+            Notification.requestPermission();
+        }
+    });
+
     loadChatHistory();
+    updateScroll();
 </script>
 </body>
 </html>
