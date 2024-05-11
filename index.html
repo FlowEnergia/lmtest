@@ -220,9 +220,9 @@
 
     function buildPrompt() {
         const initialPrompt = `
-        <|user|>
-        Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>
-        `;
+<|user|>
+Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.<|end|>
+`;
         const promptHistory = conversationHistory.slice(-10);
         let prompt = initialPrompt;
         promptHistory.forEach(msg => {
@@ -273,7 +273,6 @@
             localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
             removeElement(typingIndicator);
             addMessage(botMessage, false);
-            sendNotification('Resposta do Assistente', botMessage);
         } catch (error) {
             handleApiError(error);
             removeElement(typingIndicator);
@@ -284,11 +283,11 @@
     }
 
     function handleUserInput() {
-        const userMessage = userInput.value
-.trim();
+        const userMessage = userInput.value.trim();
         if (userMessage === '') return;
 
-        conversationHistory.push({ role: 'user', content: userMessage });
+        conversationHistory.push({ role: 'user', content:
+        userMessage });
         localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
         addMessage(userMessage, true);
         userInput.value = '';
@@ -302,29 +301,6 @@
         conversationHistory = [];
         localStorage.removeItem('conversationHistory');
         messagesContainer.innerHTML = '';
-        addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
-    }
-
-    function sendNotification(title, body) {
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body });
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    new Notification(title, { body });
-                }
-            });
-        }
-    }
-
-    function loadChatHistory() {
-        if (conversationHistory.length > 0) {
-            conversationHistory.forEach(msg => {
-                addMessage(msg.content, msg.role === 'user');
-            });
-        } else {
-            addMessage("Bem-vindo! Como posso ajudá-lo hoje?", false);
-        }
     }
 
     function debounce(func, delay) {
@@ -351,11 +327,13 @@
 
     clearChatButton.addEventListener('click', clearChatHistory);
 
-    Notification.requestPermission().then(permission => {
-        if (permission !== 'granted' && permission !== 'denied') {
-            Notification.requestPermission();
+    function loadChatHistory() {
+        if (conversationHistory.length > 0) {
+            conversationHistory.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user');
+            });
         }
-    });
+    }
 
     loadChatHistory();
 </script>
