@@ -212,6 +212,11 @@
             .replace(/Tokenizer.*?$/, '') // Remove instruções do Tokenizer
             .replace(/Chat Format.*?$/, '') // Remove instruções do Chat Format
             .replace(/[\[\]]/g, '') // Remove colchetes
+            .replace(/Por favor.*?$/, '') // Remove instruções finais em inglês/espanhol
+            .replace(/\(Please.*?\)/g, '') // Remove instruções finais entre parênteses
+            .replace(/Below.*?$/, '') // Remove texto residual final em inglês
+            .replace(/In this scenario.*?$/, '') // Remove instruções finais em inglês
+            .replace(/Below are.*?$/, '') // Remove instruções finais em inglês
             .trim();
     }
 
