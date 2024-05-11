@@ -165,7 +165,7 @@
     <div id="messages" aria-live="polite"></div>
     <div id="input-container">
         <input type="text" id="user-input" placeholder="Digite sua mensagem aqui..." aria-label="Mensagem">
-        <button id="send-button">Enviar</button>
+        <button id="send-button" disabled>Enviar</button>
     </div>
 </div>
 <button id="clear-chat">Reiniciar Chat</button>
@@ -225,10 +225,10 @@
         `;
         const promptHistory = conversationHistory.slice(-10);
         let prompt = initialPrompt;
-        for (const msg of promptHistory) {
+        promptHistory.forEach(msg => {
             const role = msg.role === 'user' ? '<|user|>' : '<|assistant|>';
             prompt += `${role}\n${msg.content}\n<|end|>\n`;
-        }
+        });
         prompt += '<|assistant|>';
         return prompt;
     }
@@ -244,8 +244,7 @@
     }
 
     function handleApiError(error) {
-        const errorMessage = `Desculpe, ocorreu um erro: ${error}`;
-        addMessage(errorMessage, false);
+        addMessage(`Desculpe, ocorreu um erro: ${error}`, false);
     }
 
     async function processBotResponse(typingIndicator) {
@@ -285,7 +284,8 @@
     }
 
     function handleUserInput() {
-        const userMessage = userInput.value.trim();
+        const userMessage = userInput.value
+.trim();
         if (userMessage === '') return;
 
         conversationHistory.push({ role: 'user', content: userMessage });
@@ -317,10 +317,6 @@
         }
     }
 
-    function updateScroll() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
     function loadChatHistory() {
         if (conversationHistory.length > 0) {
             conversationHistory.forEach(msg => {
@@ -340,7 +336,12 @@
         };
     }
 
+    function handleUserInputChange() {
+        sendButton.disabled = userInput.value.trim() === '';
+    }
+
     sendButton.addEventListener('click', debounce(handleUserInput, 300));
+    userInput.addEventListener('input', handleUserInputChange);
     userInput.addEventListener('keypress', e => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -357,7 +358,6 @@
     });
 
     loadChatHistory();
-    updateScroll();
 </script>
 </body>
 </html>
