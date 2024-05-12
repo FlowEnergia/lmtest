@@ -14,15 +14,15 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #2c2c2c;
-            color: #f4f4f4;
+            background-color: var(--bg-color, #2c2c2c);
+            color: var(--text-color, #f4f4f4);
             transition: background-color 0.3s, color 0.3s;
         }
 
         #chat-container {
             width: 100%;
             max-width: 700px;
-            background-color: #3c3c3c;
+            background-color: var(--container-bg-color, #3c3c3c);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             display: flex;
@@ -82,7 +82,7 @@
             display: flex;
             padding: 10px;
             border-top: 1px sólido #ccc;
-            background-color: #4c4c4c;
+            background-color: var(--input-bg-color, #4c4c4c);
             transition: background-color 0.3s, color 0.3s;
         }
 
@@ -92,8 +92,8 @@
             border: 1px sólido #ccc;
             border-radius: 8px;
             outline: none;
-            background-color: #3c3c3c;
-            color: #f4f4f4;
+            background-color: var(--input-inner-bg-color, #3c3c3c);
+            color: var(--input-text-color, #f4f4f4);
         }
 
         #send-button {
@@ -123,6 +123,17 @@
             transition: background-color 0.3s;
         }
 
+        #theme-toggle {
+            margin: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -139,6 +150,7 @@
     </div>
 </div>
 <button id="clear-chat">Reiniciar Chat</button>
+<button id="theme-toggle">Alternar Tema</button>
 
 <script>
     const API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct';
@@ -147,6 +159,7 @@
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
     const clearChatButton = document.getElementById('clear-chat');
+    const themeToggleButton = document.getElementById('theme-toggle');
     let conversationHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
 
     async function query(data) {
@@ -292,6 +305,27 @@
         sendButton.disabled = userInput.value.trim() === '';
     }
 
+    function toggleTheme() {
+        const currentTheme = document.documentElement.style.getPropertyValue('--bg-color');
+        if (currentTheme === '#2c2c2c') {
+            document.documentElement.style.setProperty('--bg-color', '#f4f4f4');
+            document.documentElement.style.setProperty('--text-color', '#2c2c2c');
+            document.documentElement.style.setProperty('--container-bg-color', '#e0e0e0');
+            document.documentElement.style.setProperty('--input-bg-color', '#d0d0d0');
+            document.documentElement.style.setProperty('--input-inner-bg-color', '#c0c0c0');
+            document.documentElement.style.setProperty('--input-text-color', '#2c2c2c');
+            themeToggleButton.textContent = 'Tema Escuro';
+        } else {
+            document.documentElement.style.setProperty('--bg-color', '#2c2c2c');
+            document.documentElement.style.setProperty('--text-color', '#f4f4f4');
+            document.documentElement.style.setProperty('--container-bg-color', '#3c3c3c');
+            document.documentElement.style.setProperty('--input-bg-color', '#4c4c4c');
+            document.documentElement.style.setProperty('--input-inner-bg-color', '#3c3c3c');
+            document.documentElement.style.setProperty('--input-text-color', '#f4f4f4');
+            themeToggleButton.textContent = 'Tema Claro';
+        }
+    }
+
     sendButton.addEventListener('click', debounce(handleUserInput, 300));
     userInput.addEventListener('input', handleUserInputChange);
     userInput.addEventListener('keypress', e => {
@@ -302,6 +336,7 @@
     });
 
     clearChatButton.addEventListener('click', clearChatHistory);
+    themeToggleButton.addEventListener('click', toggleTheme);
 
     function loadChatHistory() {
         if (conversationHistory.length > 0) {
