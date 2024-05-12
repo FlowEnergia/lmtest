@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot Avançado</title>
+    <title>good-phi-chatbot</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -145,7 +145,7 @@
 <div id="chat-container">
     <div id="messages" aria-live="polite"></div>
     <div id="input-container">
-        <input type="text" id="user-input" placeholder="Digite sua mensagem aqui..." aria-label="Mensagem">
+        <input type="text" id="user-input" placeholder="Mensagem" aria-label="Mensagem">
         <button id="send-button" disabled>Enviar</button>
     </div>
 </div>
@@ -191,7 +191,7 @@
     function addTypingIndicator() {
         const typingIndicator = document.createElement('div');
         typingIndicator.className = 'typing-indicator';
-        typingIndicator.innerHTML = `<span>Assistente está digitando...</span>`;
+        typingIndicator.innerHTML = `<span>digitando...</span>`;
         messagesContainer.appendChild(typingIndicator);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return typingIndicator;
