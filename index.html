@@ -81,7 +81,7 @@
         #input-container {
             display: flex;
             padding: 10px;
-            border-top: 1px sólido #ccc;
+            border-top: 1px solid #ccc;
             background-color: var(--input-bg-color, #4c4c4c);
             transition: background-color 0.3s, color 0.3s;
         }
@@ -89,7 +89,7 @@
         #user-input {
             flex-grow: 1;
             padding: 10px;
-            border: 1px sólido #ccc;
+            border: 1px solid #ccc;
             border-radius: 8px;
             outline: none;
             background-color: var(--input-inner-bg-color, #3c3c3c);
@@ -145,7 +145,7 @@
 <div id="chat-container">
     <div id="messages" aria-live="polite"></div>
     <div id="input-container">
-        <input type="text" id="user-input" placeholder="Mensagem" aria-label="Mensagem">
+        <input type="text" id="user-input" placeholder="Digite sua mensagem aqui..." aria-label="Mensagem">
         <button id="send-button" disabled>Enviar</button>
     </div>
 </div>
@@ -160,6 +160,7 @@
     const sendButton = document.getElementById('send-button');
     const clearChatButton = document.getElementById('clear-chat');
     const themeToggleButton = document.getElementById('theme-toggle');
+
     let conversationHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
 
     async function query(data) {
@@ -201,10 +202,12 @@
         if (element) messagesContainer.removeChild(element);
     }
 
+    // Simplificando a construção do prompt e limitando o histórico para evitar respostas sem sentido
     function buildPrompt() {
-        const initialPrompt = `Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.\n`;
-        const promptHistory = conversationHistory.slice(-10);
-        let prompt = initialPrompt;
+        const maxHistoryLength = 10; // Limita o histórico para as últimas 10 interações
+        const promptHistory = conversationHistory.slice(-maxHistoryLength);
+        let prompt = `Você é um assistente virtual amigável, útil e altamente qualificado. Responda de forma clara, direta e profissional.\n`;
+        
         promptHistory.forEach(msg => {
             const role = msg.role === 'user' ? '<|user|>' : '<|assistant|>';
             prompt += `${role}\n${msg.content}\n<|end|>\n`;
@@ -220,16 +223,16 @@
             .replace(/\(Note:[^\)]*\)/gi, '')
             .replace(/\n+/g, ' ')
             .replace(/[^.!?]*$/, '')
-            .replace(/Instrucción \d.*?$/, '') // Remove instruções irrelevantes
-            .replace(/Sample.*?$/, '') // Remove texto residual de exemplos
-            .replace(/Tokenizer.*?$/, '') // Remove instruções do Tokenizer
-            .replace(/Chat Format.*?$/, '') // Remove instruções do Chat Format
-            .replace(/[\[\]]/g, '') // Remove colchetes
-            .replace(/Por favor.*?$/, '') // Remove instruções finais em inglês/espanhol
-            .replace(/\(Please.*?\)/g, '') // Remove instruções finais entre parênteses
-            .replace(/Below.*?$/, '') // Remove texto residual final em inglês
-            .replace(/In this scenario.*?$/, '') // Remove instruções finais em inglês
-            .replace(/Below are.*?$/, '') // Remove instruções finais em inglês
+            .replace(/Instrucción \d.*?$/, '')
+            .replace(/Sample.*?$/, '')
+            .replace(/Tokenizer.*?$/, '')
+            .replace(/Chat Format.*?$/, '')
+            .replace(/[\[\]]/g, '')
+            .replace(/Por favor.*?$/, '')
+            .replace(/\(Please.*?\)/g, '')
+            .replace(/Below.*?$/, '')
+            .replace(/In this scenario.*?$/, '')
+            .replace(/Below are.*?$/, '')
             .trim();
     }
 
@@ -242,7 +245,7 @@
         const requestData = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 1900,
+                max_new_tokens: 150, // Reduzindo o número de tokens para manter as respostas mais curtas e diretas
                 temperature: 0.65,
                 top_p: 0.85,
                 repetition_penalty: 1.1,
@@ -259,6 +262,7 @@
                 botMessage = cleanResponse(botResponse[0].generated_text);
             }
 
+            // Atualiza o histórico de conversa e o armazena no localStorage
             conversationHistory.push({ role: 'assistant', content: botMessage });
             localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
             removeElement(typingIndicator);
@@ -276,6 +280,7 @@
         const userMessage = userInput.value.trim();
         if (userMessage === '') return;
 
+        // Atualiza o histórico de conversa e o armazena no localStorage
         conversationHistory.push({ role: 'user', content: userMessage });
         localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
         addMessage(userMessage, true);
